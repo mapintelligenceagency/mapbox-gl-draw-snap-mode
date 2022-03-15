@@ -1,13 +1,11 @@
-import theme from '@mapbox/mapbox-gl-draw/src/lib/theme';
+// @ts-expect-error theme
+import theme from "@mapbox/mapbox-gl-draw/src/lib/theme";
 
-const modifiedDefaultStyles = theme.map(defaultStyle => {
-  if (defaultStyle.id === 'gl-draw-line-inactive') {
+const modifiedDefaultStyles = theme.map((defaultStyle: any) => {
+  if (defaultStyle.id === "gl-draw-line-inactive") {
     return {
       ...defaultStyle,
-      filter: [
-        ...defaultStyle.filter,
-        ['!=', 'user_isSnapGuide', 'true'],
-      ],
+      filter: [...defaultStyle.filter, ["!=", "user_isSnapGuide", "true"]],
     };
   }
 

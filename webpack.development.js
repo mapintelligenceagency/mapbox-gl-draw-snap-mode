@@ -17,13 +17,16 @@ module.exports = [
       port: 9000,
       hot: true,
     },
-    entry: "./src/index.js",
+    entry: "./src/index.ts",
     devtool: "source-map",
     output: {
       filename: "index.js",
       library: "mapboxGlDrawSnapMode",
       libraryTarget: "umd",
       globalObject: "this",
+    },
+    resolve: {
+      extensions: [".ts", ".js"],
     },
     module: {
       rules: [
@@ -36,6 +39,16 @@ module.exports = [
               presets: ["@babel/preset-env"],
             },
           },
+        },
+        {
+          test: /\.tsx?$/,
+          use: {
+            loader: "ts-loader",
+            options: {
+              transpileOnly: true,
+            },
+          },
+          exclude: /node_modules/,
         },
       ],
     },
