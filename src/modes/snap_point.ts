@@ -6,9 +6,9 @@ import doubleClickZoom from "@mapbox/mapbox-gl-draw/src/lib/double_click_zoom";
 // @ts-expect-error No typings available
 import DrawPoint from "@mapbox/mapbox-gl-draw/src/modes/draw_point";
 import { Feature } from "geojson";
-import { State } from "../types/state";
+import { MapMouseEvent } from "mapbox-gl";
+import { Options, State } from "../utils/state";
 import {
-  addPointToVertices,
   createSnapList,
   getGuideFeature,
   IDS,
@@ -16,7 +16,7 @@ import {
   snap,
 } from "../utils";
 
-const SnapPointMode: DrawCustomMode<State> = { ...DrawPoint };
+const SnapPointMode: DrawCustomMode<State, Options> = { ...DrawPoint };
 
 SnapPointMode.onSetup = function (options) {
   const point = this.newFeature({
@@ -43,19 +43,11 @@ SnapPointMode.onSetup = function (options) {
 
   const { snapList, vertices } = createSnapList(this.map, this._ctx.api, point);
 
-  const state: State = {
-    map: this.map,
-    point,
-    vertices,
-    snapList,
-    selectedFeatures,
-    verticalGuide,
-    horizontalGuide,
+  const optionsChangedCallback = (options: Options) => {
+    state.options = options;
   };
 
-  state.options = this._ctx.options;
-
-  const moveendCallback = () => {
+  const moveEndCallback = () => {
     const { snapList, vertices } = createSnapList(
       this.map,
       this._ctx.api,
@@ -64,17 +56,23 @@ SnapPointMode.onSetup = function (options) {
     state.vertices = vertices;
     state.snapList = snapList;
   };
-  // for removing listener later on close
-  state.moveendCallback = moveendCallback;
 
-  const optionsChangedCallBack = (options: State["options"]) => {
-    state.options = options;
+  const state: State = {
+    map: this.map,
+    point,
+    vertices,
+    snapList,
+    selectedFeatures,
+    verticalGuide,
+    horizontalGuide,
+    options: this._ctx.options,
+    moveEndCallback,
+    optionsChangedCallback,
+    currentVertexPosition: 0,
   };
-  // for removing listener later on close
-  state.optionsChangedCallBack = optionsChangedCallBack;
 
-  this.map.on("moveend", moveendCallback);
-  this.map.on("draw.snap.options_changed", optionsChangedCallBack);
+  this.map.on("moveend", moveEndCallback);
+  this.map.on("draw.snap.options_changed", optionsChangedCallback);
 
   return state;
 };
@@ -90,7 +88,7 @@ SnapPointMode.onClick = function (state) {
 };
 
 SnapPointMode.onMouseMove = function (state, e) {
-  const { lng, lat } = snap(state, e);
+  const { lng, lat } = snap(state, e as unknown as MapMouseEvent);
 
   state.snappedLng = lng;
   state.snappedLat = lat;
@@ -127,7 +125,8 @@ SnapPointMode.onStop = function (state) {
   this.deleteFeature(IDS.HORIZONTAL_GUIDE, { silent: true });
 
   // remove moveend callback
-  this.map.off("moveend", state.moveendCallback as any);
+  this.map.off("moveend", state.moveEndCallback);
+  this.map.off("draw.snap.options_changed", state.optionsChangedCallback);
 
   // This relies on the the state of SnapPointMode having a 'point' prop
   DrawPoint.onStop.call(this, state);

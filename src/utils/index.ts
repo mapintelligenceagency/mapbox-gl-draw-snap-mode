@@ -31,7 +31,7 @@ import {
   Position,
   LineString,
 } from "geojson";
-import { Coord, LngLat, SnapOptions, State } from "../types/state";
+import { Coord, LngLat, Options, State } from "./state";
 
 export const IDS = {
   VERTICAL_GUIDE: "VERTICAL_GUIDE",
@@ -40,9 +40,9 @@ export const IDS = {
 
 export const addPointToVertices = (
   map: Map,
-  vertices: LngLat[],
-  coordinates: LngLat,
-  forceInclusion: boolean
+  vertices: Coord[],
+  coordinates: Coord,
+  forceInclusion: boolean = false
 ) => {
   const { width: w, height: h } = map.getCanvas();
   // Just add verteices of features currently visible in viewport
@@ -107,8 +107,9 @@ export const createSnapList = (
 
   features.forEach((feature) => {
     // For currentfeature
-    if (feature.id === currentFeature.id) {
-      if (currentFeature.type === geojsonTypes.POLYGON) {
+    const { id, type } = currentFeature;
+    if (feature.id === id) {
+      if (type === geojsonTypes.POLYGON) {
         const vertices =
           (
             feature as Feature<Polygon, GeoJsonProperties>
@@ -129,7 +130,7 @@ export const createSnapList = (
       feature.id === IDS.VERTICAL_GUIDE
     )
       return;
-
+    // @ts-expect-error Mapbox DrawFeature types are not very good. The feature's geometry contains coords
     addVerticesToVertices(feature.geometry.coordinates);
 
     // If feature is currently on viewport add to snap list
@@ -270,7 +271,7 @@ const metersPerPixel = function (latitude: number, zoomLevel: number) {
 // receives priority over C as the snapping point. Let's check this here
 const checkPrioritiySnapping = (
   closestLayer: ClosestLayer,
-  snapOptions: SnapOptions,
+  snapOptions: Options["snapOptions"],
   snapVertexPriorityDistance = 1.25
 ) => {
   if (!closestLayer.segment) {
@@ -335,22 +336,22 @@ const checkPrioritiySnapping = (
  * @param e
  * @returns {{lng: number, lat: number}}
  */
-export const snap = (state: State, e: MapMouseEvent) => {
+export const snap = (state: State, e: MapMouseEvent): LngLat => {
   let lng = e.lngLat.lng;
   let lat = e.lngLat.lat;
 
   // If shift key is pressed, we use the last point from the line as snap point
   if (e.originalEvent.shiftKey) {
     const feature = state.line || state.polygon;
+    if (!feature) {
+      return { lng, lat };
+    }
     const coords = (state.polygon
       ? feature.getCoordinates()[0]
       : feature.getCoordinates()) as unknown as Coord[];
 
-    console.log(JSON.stringify(coords));
-
     const lastPoint: Coord | undefined =
       coords[coords.length - (state.polygon ? 3 : 2)];
-    //console.log(lastPoint);
 
     if (lastPoint) {
       const { horizontalPx, verticalPx } = getNearbyVertices(
@@ -390,7 +391,7 @@ export const snap = (state: State, e: MapMouseEvent) => {
     closestLayer = calcClosestLayer({ lng, lat }, state.snapList);
     // if no layers found. Can happen when circle is the only visible layer on the map and the hidden snapping-border circle layer is also on the map
     if (!closestLayer) {
-      return;
+      return { lng, lat };
     }
 
     const isMarker = closestLayer.isMarker;
@@ -454,6 +455,7 @@ export const snap = (state: State, e: MapMouseEvent) => {
   }
 
   if (
+    snapLatLng &&
     closestLayer &&
     closestLayer.distance &&
     closestLayer.distance * 1000 < minDistance

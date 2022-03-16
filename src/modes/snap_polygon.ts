@@ -1,4 +1,4 @@
-import { DrawCustomMode } from "@mapbox/mapbox-gl-draw";
+import { DrawCustomMode, DrawFeature } from "@mapbox/mapbox-gl-draw";
 import {
   geojsonTypes,
   modes,
@@ -9,8 +9,9 @@ import {
 import doubleClickZoom from "@mapbox/mapbox-gl-draw/src/lib/double_click_zoom";
 // @ts-expect-error No typings available
 import DrawPolygon from "@mapbox/mapbox-gl-draw/src/modes/draw_polygon";
-import { Feature } from "geojson";
-import { State } from "../types/state";
+import { Feature, Polygon } from "geojson";
+import { MapMouseEvent } from "mapbox-gl";
+import { Coord, Options, State } from "../utils/state";
 import {
   addPointToVertices,
   createSnapList,
@@ -20,7 +21,7 @@ import {
   snap,
 } from "../utils";
 
-const SnapPolygonMode: DrawCustomMode<State> = { ...DrawPolygon };
+const SnapPolygonMode: DrawCustomMode<State, Options> = { ...DrawPolygon };
 
 SnapPolygonMode.onSetup = function (options) {
   const polygon = this.newFeature({
@@ -30,7 +31,7 @@ SnapPolygonMode.onSetup = function (options) {
       type: geojsonTypes.POLYGON,
       coordinates: [[]],
     },
-  });
+  }) as DrawFeature & Feature<Polygon>;
 
   const verticalGuide = this.newFeature(getGuideFeature(IDS.VERTICAL_GUIDE));
   const horizontalGuide = this.newFeature(
@@ -51,6 +52,20 @@ SnapPolygonMode.onSetup = function (options) {
     polygon
   );
 
+  const optionsChangedCallback = (options: Options) => {
+    state.options = options;
+  };
+
+  const moveEndCallback = () => {
+    const { snapList, vertices } = createSnapList(
+      this.map,
+      this._ctx.api,
+      polygon
+    );
+    state.vertices = vertices;
+    state.snapList = snapList;
+  };
+
   const state: State = {
     map: this.map,
     polygon,
@@ -60,30 +75,13 @@ SnapPolygonMode.onSetup = function (options) {
     selectedFeatures,
     verticalGuide,
     horizontalGuide,
-  };
-  state.options = this._ctx.options;
-
-  const moveendCallback = () => {
-    const { snapList, vertices } = createSnapList(
-      this.map,
-      this._ctx.api,
-      polygon
-    );
-    state.vertices = vertices;
-    state.snapList = snapList;
-  };
-  // for removing listener later on close
-  state["moveendCallback"] = moveendCallback;
-
-  const optionsChangedCallBack = (options) => {
-    state.options = options;
+    options: this._ctx.options,
+    optionsChangedCallback,
+    moveEndCallback,
   };
 
-  // for removing listener later on close
-  state.optionsChangedCallBack = optionsChangedCallBack;
-
-  this.map.on("moveend", moveendCallback);
-  this.map.on("draw.snap.options_changed", optionsChangedCallBack);
+  this.map.on("moveend", moveEndCallback);
+  this.map.on("draw.snap.options_changed", optionsChangedCallback);
 
   return state;
 };
@@ -93,35 +91,49 @@ SnapPolygonMode.onClick = function (state) {
   const lng = state.snappedLng;
   const lat = state.snappedLat;
 
+  if (!lng || !lat) {
+    return;
+  }
   // End the drawing if this click is on the previous position
   if (state.currentVertexPosition > 0) {
     const lastVertex =
-      state.polygon.coordinates[0][state.currentVertexPosition - 1];
-
-    state.lastVertex = lastVertex;
+      state.polygon?.coordinates[0][state.currentVertexPosition - 1];
+    state.lastVertex = lastVertex as Coord;
 
     if (lastVertex[0] === lng && lastVertex[1] === lat) {
       return this.changeMode(modes.SIMPLE_SELECT, {
-        featureIds: [state.polygon.id],
+        featureIds: [state.polygon?.id],
       });
     }
   }
 
   // const point = state.map.project();
 
-  addPointToVertices(state.map, state.vertices, { lng, lat });
+  addPointToVertices(state.map, state.vertices, [lng, lat]);
 
-  state.polygon.updateCoordinate(`0.${state.currentVertexPosition}`, lng, lat);
+  state.polygon?.updateCoordinate(
+    Number(`0.${state.currentVertexPosition}`),
+    lng,
+    lat
+  );
 
   state.currentVertexPosition++;
 
-  state.polygon.updateCoordinate(`0.${state.currentVertexPosition}`, lng, lat);
+  state.polygon?.updateCoordinate(
+    Number(`0.${state.currentVertexPosition}`),
+    lng,
+    lat
+  );
 };
 
 SnapPolygonMode.onMouseMove = function (state, e) {
-  const { lng, lat } = snap(state, e);
+  const { lng, lat } = snap(state, e as unknown as MapMouseEvent);
 
-  state.polygon.updateCoordinate(`0.${state.currentVertexPosition}`, lng, lat);
+  state.polygon?.updateCoordinate(
+    Number(`0.${state.currentVertexPosition}`),
+    lng,
+    lat
+  );
   state.snappedLng = lng;
   state.snappedLat = lat;
 
@@ -157,8 +169,8 @@ SnapPolygonMode.onStop = function (state) {
   this.deleteFeature(IDS.HORIZONTAL_GUIDE, { silent: true });
 
   // remove moveemd callback
-  this.map.off("moveend", state.moveendCallback);
-  this.map.off("draw.snap.options_changed", state.optionsChangedCallBack);
+  this.map.off("moveend", state.moveEndCallback);
+  this.map.off("draw.snap.options_changed", state.optionsChangedCallback);
 
   // This relies on the the state of SnapPolygonMode being similar to DrawPolygon
   DrawPolygon.onStop.call(this, state);
