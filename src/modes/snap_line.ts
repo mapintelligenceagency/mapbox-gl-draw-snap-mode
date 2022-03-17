@@ -113,17 +113,17 @@ SnapLineMode.onClick = function (state) {
 
   addPointToVertices(state.map, state.vertices, [lng, lat], false);
 
-  state.line?.updateCoordinate(state.currentVertexPosition, lng, lat);
+  state.line?.updateCoordinate(`${state.currentVertexPosition}`, lng, lat);
 
   state.currentVertexPosition++;
 
-  state.line?.updateCoordinate(state.currentVertexPosition, lng, lat);
+  state.line?.updateCoordinate(`${state.currentVertexPosition}`, lng, lat);
 };
 
 SnapLineMode.onMouseMove = function (state, e) {
   const { lng, lat } = snap(state, e as unknown as MapMouseEvent);
 
-  state.line?.updateCoordinate(state.currentVertexPosition, lng, lat);
+  state.line?.updateCoordinate(`${state.currentVertexPosition}`, lng, lat);
   state.snappedLng = lng;
   state.snappedLat = lat;
 

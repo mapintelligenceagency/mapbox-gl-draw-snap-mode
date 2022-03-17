@@ -428,9 +428,9 @@ export const snap = (state: State, e: MapMouseEvent): LngLat => {
       const lngLatTop = { lng: verticalPx, lat: e.lngLat.lat + 10 };
       const lngLatBottom = { lng: verticalPx, lat: e.lngLat.lat - 10 };
 
-      state.verticalGuide.updateCoordinate(0, lngLatTop.lng, lngLatTop.lat);
+      state.verticalGuide.updateCoordinate("0", lngLatTop.lng, lngLatTop.lat);
       state.verticalGuide.updateCoordinate(
-        1,
+        "1",
         lngLatBottom.lng,
         lngLatBottom.lat
       );
@@ -442,9 +442,9 @@ export const snap = (state: State, e: MapMouseEvent): LngLat => {
       const lngLatTop = { lng: e.lngLat.lng + 10, lat: horizontalPx };
       const lngLatBottom = { lng: e.lngLat.lng - 10, lat: horizontalPx };
 
-      state.horizontalGuide.updateCoordinate(0, lngLatTop.lng, lngLatTop.lat);
+      state.horizontalGuide.updateCoordinate("0", lngLatTop.lng, lngLatTop.lat);
       state.horizontalGuide.updateCoordinate(
-        1,
+        "1",
         lngLatBottom.lng,
         lngLatBottom.lat
       );

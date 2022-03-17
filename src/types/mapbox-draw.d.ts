@@ -15,6 +15,7 @@ declare namespace MapboxDraw {
     coordinates: Geometry["coordinates"];
     id: string;
     type: Geometry["type"];
-    updateCoordinate(_: number, _: number, _: number);
+    updateCoordinate(_: string, _: number, _: number);
+    updateCoordinate(_: number, _: number);
   }
 }

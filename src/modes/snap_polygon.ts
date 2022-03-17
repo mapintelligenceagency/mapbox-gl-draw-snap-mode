@@ -111,29 +111,17 @@ SnapPolygonMode.onClick = function (state) {
 
   addPointToVertices(state.map, state.vertices, [lng, lat]);
 
-  state.polygon?.updateCoordinate(
-    Number(`0.${state.currentVertexPosition}`),
-    lng,
-    lat
-  );
+  state.polygon?.updateCoordinate(`0.${state.currentVertexPosition}`, lng, lat);
 
   state.currentVertexPosition++;
 
-  state.polygon?.updateCoordinate(
-    Number(`0.${state.currentVertexPosition}`),
-    lng,
-    lat
-  );
+  state.polygon?.updateCoordinate(`0.${state.currentVertexPosition}`, lng, lat);
 };
 
 SnapPolygonMode.onMouseMove = function (state, e) {
   const { lng, lat } = snap(state, e as unknown as MapMouseEvent);
 
-  state.polygon?.updateCoordinate(
-    Number(`0.${state.currentVertexPosition}`),
-    lng,
-    lat
-  );
+  state.polygon?.updateCoordinate(`0.${state.currentVertexPosition}`, lng, lat);
   state.snappedLng = lng;
   state.snappedLat = lat;
 
