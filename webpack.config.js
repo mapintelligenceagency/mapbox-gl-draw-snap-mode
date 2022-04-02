@@ -1,13 +1,11 @@
 const webpack = require("webpack");
 const TerserPlugin = require("terser-webpack-plugin");
-const BundleAnalyzerPlugin = require("webpack-bundle-analyzer")
-  .BundleAnalyzerPlugin;
 const path = require("path");
 
 module.exports = [
   {
     mode: "production",
-    entry: "./src/index.js",
+    entry: "./src/index.ts",
     devtool: "source-map",
     output: {
       path: path.resolve(__dirname, "dist"),
@@ -17,28 +15,22 @@ module.exports = [
       globalObject: "this",
       // libraryExport: 'default',
     },
+    resolve: {
+      extensions: [".ts", ".js"],
+    },
     optimization: {
       minimize: true,
       minimizer: [new TerserPlugin({ parallel: true })],
     },
-    // externals: [/^(@mapbox\/mapbox-gl-draw).*$/],
-    // externals: [
-    //   function ({ context, request }, callback) {
-    //     if (/^(@mapbox\/mapbox-gl-draw).*$/.test(request)) {
-    //       // Externalize to a commonjs module using the request path
-    //       return callback(null, {
-    //         root: "MapboxDraw",
-    //         commonjs: request,
-    //         commonjs2: request,
-    //       });
-    //     }
-
-    //     // Continue without externalizing the import
-    //     callback();
-    //   },
-    // ],
     module: {
       rules: [
+        {
+          test: /\.ts$/,
+          use: {
+            loader: "ts-loader",
+          },
+          exclude: /node_modules/,
+        },
         {
           test: /\.m?js$/,
           exclude: /node_modules/,
@@ -51,12 +43,5 @@ module.exports = [
         },
       ],
     },
-    plugins: [
-      // new BundleAnalyzerPlugin({
-      //   analyzerMode: "server",
-      //   generateStatsFile: true,
-      //   statsOptions: { source: false },
-      // }),
-    ],
   },
 ];

@@ -20,7 +20,7 @@ module.exports = [
     entry: "./src/index.ts",
     devtool: "source-map",
     output: {
-      filename: "index.js",
+      filename: "mapbox-gl-draw-snap-mode.js",
       library: "mapboxGlDrawSnapMode",
       libraryTarget: "umd",
       globalObject: "this",
